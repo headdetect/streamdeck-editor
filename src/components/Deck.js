@@ -1,17 +1,25 @@
-import React, { useState } from "react";
+import React, { useMemo } from "react";
 import { openStreamDeck } from "elgato-stream-deck";
 import * as PropTypes from "prop-types";
 import { range } from "lodash";
 import DeckButton from "./DeckButton";
-import "./Deck.css";
+import "../assets/scss/components/Deck.scss";
 
-const Deck = ({ deckPath }) => {
-  const [selectedButton, setSelectedButton] = useState(null);
-
-  const info = openStreamDeck(deckPath);
+const Deck = ({ deckDevice, onButtonSelected, selectedButton }) => {
+  const info = useMemo(() => openStreamDeck(deckDevice.path), [deckDevice.path]);
 
   const rows = info.KEY_ROWS;
   const columns = info.KEY_COLUMNS;
+
+  const renderButton = (row, col) => {
+    const index = row * columns + col;
+
+    return (
+      <div className="col deckColumn" key={index}>
+        <DeckButton index={index} onSelected={onButtonSelected} selected={index === selectedButton} />
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -19,11 +27,7 @@ const Deck = ({ deckPath }) => {
         range(rows).map(row => (
           <div className="row deckRow" key={row}>
             {
-              range(columns).map(col => (
-                <div className="col deckColumn" key={row * columns + col}>
-                  <DeckButton keyCode={row * columns + col} onSelected={setSelectedButton} />
-                </div>
-              ))
+              range(columns).map(col => renderButton(row, col))
             }
           </div>
         ))
@@ -33,7 +37,17 @@ const Deck = ({ deckPath }) => {
 };
 
 Deck.propTypes = {
-  deckPath: PropTypes.string.isRequired,
+  deckDevice: PropTypes.shape({
+    model: PropTypes.string.isRequired,
+    path: PropTypes.string.isRequired,
+    serialNumber: PropTypes.string.isRequired,
+  }).isRequired,
+  onButtonSelected: PropTypes.func.isRequired,
+  selectedButton: PropTypes.number,
+};
+
+Deck.defaultProps = {
+  selectedButton: null,
 };
 
 export default Deck;

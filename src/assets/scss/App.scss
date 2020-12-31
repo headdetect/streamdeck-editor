@@ -5,6 +5,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap');
 @import url('https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css');
 
+@import './buttons.scss';
+
 body {
   height: 100vh;
 
@@ -18,5 +20,4 @@ body {
   );
   font-family: 'Noto Sans JP', sans-serif;
   overflow: hidden;
-  color: white;
 }

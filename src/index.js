@@ -1,7 +1,7 @@
 import React from "react";
 import { render } from "react-dom";
 import App from "./App";
-import "./App.global.css";
+import "./assets/scss/App.scss";
 
 const appRoot = document.createElement("div");
 appRoot.id = "root";

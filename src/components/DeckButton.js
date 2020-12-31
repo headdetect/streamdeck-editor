@@ -1,30 +1,42 @@
 import React from "react";
 import * as PropType from "prop-types";
-import "./DeckButton.css";
+import classnames from "classnames";
+import "../assets/scss/components/DeckButton.scss";
+import useConfig from "../hooks/useConfig";
 
-const DeckButton = ({ keyCode, onSelected }) => {
-  const keyName = `${keyCode}`;
+const DeckButton = ({ index, onSelected, selected }) => {
+  const [config] = useConfig();
 
-  const handleClicked = event => {
+  const buttonConfig = config?.buttons?.find(b => b.index === index);
+
+  const handleClicked = () => {
     if (onSelected) {
-      onSelected(event);
+      onSelected(index);
     }
   };
 
   return (
     <div className="deckButton">
-      <button className="deckButtonContent" onClick={handleClicked} type="button">{keyName}</button>
+      <button className={classnames("deckButtonContent", { selected })} onClick={handleClicked} type="button">
+        {
+          buttonConfig
+            ? <span>()</span>
+            : <></>
+        }
+      </button>
     </div>
   );
 };
 
 DeckButton.propTypes = {
-  keyCode: PropType.number.isRequired,
+  index: PropType.number.isRequired,
   onSelected: PropType.func,
+  selected: PropType.bool,
 };
 
 DeckButton.defaultProps = {
   onSelected: () => {},
+  selected: false,
 };
 
 export default DeckButton;

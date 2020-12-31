@@ -5,11 +5,20 @@ const MinifyPlugin = require("babel-minify-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 // Any directories you will be adding code/files into, need to be added to this array so webpack will pick them up
-const defaultInclude = path.resolve(__dirname, "src");
+const defaultInclude = path.resolve(__dirname, "./src");
 
 module.exports = {
   module: {
     rules: [
+      {
+        test: /\.s[ac]ss$/i,
+        use: [
+          "style-loader",
+          "css-loader",
+          "sass-loader",
+        ],
+        include: defaultInclude,
+      },
       {
         test: /\.css$/,
         use: [
