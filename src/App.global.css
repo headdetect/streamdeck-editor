@@ -1,0 +1,22 @@
+/*
+ * @NOTE: Prepend a `~` to css file paths that are in your node_modules
+ *        See https://github.com/webpack-contrib/sass-loader#imports
+ */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css');
+
+body {
+  height: 100vh;
+
+  min-width: 1024px;
+  min-height: 768px;
+
+  background: linear-gradient(
+    200.96deg,
+    #252525 -29.09%,
+    #151010 51.77%
+  );
+  font-family: 'Noto Sans JP', sans-serif;
+  overflow: hidden;
+  color: white;
+}
