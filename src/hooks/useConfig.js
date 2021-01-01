@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { debounce } from "lodash";
 
 const fs = require("fs");
 
@@ -21,31 +22,34 @@ const defaultConfig = {
 
 /**
  * Hook to get the current active configurations.
- * @param deckPath
- * @param fileName
+ * @param deckSerialNumber
  */
-const useConfig = (deckPath, fileName = "config.json") => {
-  const readFromFile = () => {
-    if (!fs.existsSync(fileName)) {
-      fs.writeFileSync(fileName, JSON.stringify(defaultConfig, null, 4));
-    }
+const useConfig = (deckSerialNumber) => {
+  if (!deckSerialNumber) {
+    // eslint-disable-next-line no-throw-literal
+    throw "Deck serial number must be set";
+  }
 
-    return JSON.parse(fs.readFileSync(fileName).toString());
-  };
+  const fileName = `${deckSerialNumber}.config.json`;
 
-  const [config, setConfig] = useState(readFromFile);
+  if (!fs.existsSync(fileName)) {
+    fs.writeFileSync(fileName, JSON.stringify(defaultConfig, null, 4));
+  }
+
+  const rawConfig = JSON.parse(fs.readFileSync(fileName).toString());
+  const [config, setConfig] = useState(rawConfig);
 
   // Update the state and persist on disk //
   const writeToConfig = (updatedConfigs, overwrite = false) => {
     if (overwrite) {
-      fs.writeFileSync(fileName, JSON.stringify(updatedConfigs, null, 4));
+      fs.writeFileSync(fileName, JSON.stringify(updatedConfigs, null, 4)); // TODO: Do this async
       setConfig(updatedConfigs);
       return;
     }
 
-    const newConfig = { config, ...updatedConfigs };
+    const newConfig = { ...rawConfig, ...updatedConfigs };
 
-    fs.writeFileSync(fileName, JSON.stringify(newConfig, null, 4));
+    fs.writeFileSync(fileName, JSON.stringify(newConfig, null, 4)); // TODO: Do this async
     setConfig(newConfig);
   };
 

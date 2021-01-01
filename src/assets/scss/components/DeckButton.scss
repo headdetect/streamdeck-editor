@@ -1,4 +1,4 @@
-@import '@styles/variables.scss';
+@import '../variables.scss';
 
 .deckButton {
   width: 100%;
@@ -21,7 +21,7 @@
   background: #252525;
 
   border-radius: 6px;
-  border: 2px solid #171717;
+  border: 2px solid #111111;
 
   &:focus {
     outline: 0;

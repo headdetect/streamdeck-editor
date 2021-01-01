@@ -14,10 +14,13 @@
   "rules": {
     "react/jsx-filename-extension": "off",
     "react/jsx-one-expression-per-line": "off",
+    "jsx-a11y/label-has-associated-control": "off",
 
     "arrow-parens": "off",
+    "object-curly-newline": "off",
     "no-const-assign": "warn",
     "no-this-before-super": "warn",
+    "no-restricted-syntax": "off",
     "no-undef": "warn",
     "no-continue": "off",
     "no-unreachable": "warn",

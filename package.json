@@ -30,6 +30,9 @@
   "dependencies": {
     "@babel/core": "^7.12.10",
     "@babel/preset-react": "^7.12.10",
+    "@fortawesome/fontawesome-svg-core": "^1.2.32",
+    "@fortawesome/free-solid-svg-icons": "^5.15.1",
+    "@fortawesome/react-fontawesome": "^0.1.14",
     "@julusian/jpeg-turbo": "^1.0.0",
     "babel-loader": "^8.2.2",
     "babel-minify-webpack-plugin": "^0.3.1",
