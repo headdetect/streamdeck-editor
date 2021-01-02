@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { debounce } from "lodash";
 
 const fs = require("fs");
 
 const defaultConfig = {
+  version: "1",
   brightness: 70,
   buttons: [
     {
       index: 7,
       style: {
         text: "Make Popup",
-        background: "#80deea",
+        background: {
+          color: "#80deea",
+        },
       },
       command: "execute",
       payload: {

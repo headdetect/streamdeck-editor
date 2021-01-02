@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState } from "react";
 import { listStreamDecks, openStreamDeck } from "elgato-stream-deck";
 import { first, isNil } from "lodash";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -25,8 +25,16 @@ async function updateStreamDeck(device, config) {
     }
 
     if (style?.background) {
-      const color = hexToRgb(style.background);
-      device.fillColor(index, color.r, color.g, color.b);
+      // Send color first //
+      if (style.background.color) {
+        const color = hexToRgb(style.background);
+        device.fillColor(index, color.r, color.g, color.b);
+      }
+
+      // Then send image //
+      if (style.background.image) {
+        // Image go here //
+      }
     }
   }
 }
@@ -75,12 +83,11 @@ export default function App() {
   };
 
   return (
-    <div className="row h-100 p-4">
+    <div className="row h-100 px-3">
       <div className="col-8">
-        <div className="row mb-3">
-          <div className="col">
-
-            <select onChange={ele => setSelectedDeckInfo(decks.find(d => d.serialNumber === ele.target.value))} className="mb-3">
+        <div className="row my-3">
+          <div className="col-4">
+            <select className="form-select mb-3" onChange={ele => setSelectedDeckInfo(decks.find(d => d.serialNumber === ele.target.value))}>
               {
                 decks.map(deck => <option key={deck.serialNumber} value={deck.serialNumber}>{deck.model} {deck.serialNumber}</option>)
               }
