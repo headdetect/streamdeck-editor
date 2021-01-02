@@ -3,6 +3,8 @@ import { listStreamDecks, openStreamDeck } from "elgato-stream-deck";
 import { first, isNil } from "lodash";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSun } from "@fortawesome/free-solid-svg-icons";
+import Jimp from "jimp";
+import fs from "fs";
 
 import Deck from "./components/Deck";
 import PropertiesTray from "./components/PropertiesTray";
@@ -24,22 +26,55 @@ async function updateStreamDeck(device, config) {
       continue;
     }
 
-    if (style?.background) {
-      // Send color first //
-      if (style.background.color) {
-        const color = hexToRgb(style.background);
-        device.fillColor(index, color.r, color.g, color.b);
+    if (style?.background?.image) {
+      // Image go here //
+
+      const image = await Jimp.read(style.background.image);
+
+      const compositeImage = await new Promise((res, rej) => {
+        new Jimp(device.ICON_SIZE, device.ICON_SIZE, style.background.color || "#000000", (err, jimpImage) => {
+          if (err) {
+            rej(err);
+            return;
+          }
+
+          res(jimpImage);
+        });
+      });
+
+      compositeImage
+        .quality(100)
+        .composite(image, 0, 0);
+
+      const rawBuffer = Buffer.alloc(device.ICON_SIZE * device.ICON_SIZE * 3);
+      const compositeBuffer = compositeImage.bitmap.data;
+
+      // Because Jimp will always have the alpha channel included,
+      // we need to strip it and I for the life of me cannot find
+      // a proper way to strip it out, so we're going to create a new
+      // buffer and copy it over sans-alpha channel.
+      let r = 0;
+      for (let i = 0; i < compositeBuffer.length; i++) {
+        if (i % 4 === 3) {
+          continue;
+        }
+
+        rawBuffer[r++] = compositeBuffer[i];
       }
 
-      // Then send image //
-      if (style.background.image) {
-        // Image go here //
-      }
+      device.fillImage(index, rawBuffer);
+    } else if (style?.background?.color) {
+      const color = hexToRgb(style.background.color);
+      device.fillColor(index, color.r, color.g, color.b);
     }
   }
 }
 
 export default function App() {
+  if (!fs.existsSync("./data")) {
+    fs.mkdirSync("./data");
+  }
+
   const decks = listStreamDecks();
 
   const primary = first(decks);
@@ -108,12 +143,12 @@ export default function App() {
           </div>
         </div>
 
-        <Deck rows={device.KEY_ROWS} columns={device.KEY_COLUMNS} onButtonSelected={buttonSelected} selectedButton={selectedButton} configs={config} />
+        <Deck device={device} onButtonSelected={buttonSelected} selectedButton={selectedButton} configs={config} />
       </div>
       <div className="col-4">
         {
           selectedButton !== null
-            ? <PropertiesTray buttonIndex={selectedButton} configs={config} onPropertyChange={propertyChanged} />
+            ? <PropertiesTray device={device} buttonIndex={selectedButton} configs={config} onPropertyChange={propertyChanged} />
             : <></>
         }
       </div>

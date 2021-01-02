@@ -45,7 +45,6 @@ module.exports = {
   ],
   externals: {
     "node-hid": "commonjs node-hid",
-    sharp: "commonjs sharp",
   },
   devtool: "cheap-source-map",
   devServer: {

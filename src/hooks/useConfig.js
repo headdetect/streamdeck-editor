@@ -32,7 +32,7 @@ const useConfig = (deckSerialNumber) => {
     throw "Deck serial number must be set";
   }
 
-  const fileName = `${deckSerialNumber}.config.json`;
+  const fileName = `./data/${deckSerialNumber}.config.json`;
 
   if (!fs.existsSync(fileName)) {
     fs.writeFileSync(fileName, JSON.stringify(defaultConfig, null, 4));

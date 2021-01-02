@@ -1,12 +1,15 @@
 import React, { useRef } from "react";
 import * as PropTypes from "prop-types";
+import jimp from "jimp";
+import { merge } from "lodash";
+import path from "path";
+
 import "../assets/scss/components/PropertiesTray.scss";
-import sharp from "sharp";
 import DeckButton from "./DeckButton";
 
 const { dialog } = require("electron").remote;
 
-const PropertiesTray = ({ buttonIndex, configs, onPropertyChange }) => {
+const PropertiesTray = ({ device, buttonIndex, configs, onPropertyChange }) => {
   const buttonConfig = configs.buttons?.find(butt => butt?.index === buttonIndex) || {};
 
   const uploadFormRef = useRef();
@@ -27,9 +30,7 @@ const PropertiesTray = ({ buttonIndex, configs, onPropertyChange }) => {
         ],
       });
     } else {
-      const newCombinedConfig = {
-        ...buttonConfig, ...newConfigs,
-      };
+      const newCombinedConfig = merge(buttonConfig, newConfigs);
 
       // Remove our old button config from the list //
       buttonConfigs.splice(configIndex, 1);
@@ -53,30 +54,26 @@ const PropertiesTray = ({ buttonIndex, configs, onPropertyChange }) => {
     });
   };
 
-  const updateBackgroundImage = event => {
-    const image = event?.target?.value;
-
-    updateButtonConfig({
-      style: {
-        background: { image },
-      },
-    });
-  };
-
   const openFileUploadDialog = async () => {
     const result = await dialog.showOpenDialog({
       properties: ["openFile"],
-      filters: [{ name: "Images", extensions: ["jpg", "png", "gif"] }],
+      filters: [{ name: "Images", extensions: ["jpg", "png", "gif", "svg"] }],
     });
 
     const [imagePath] = result.filePaths;
+    const size = device.ICON_SIZE;
 
-    // Max supported image size: https://github.com/julusian/node-elgato-stream-deck#fill-image //
-    const size = 96;
-    const image = sharp(imagePath);
-    const stats = await image.stats();
+    const fileName = `./data/${path.basename(imagePath)}`;
 
-    console.log(stats);
+    await (await jimp.read(imagePath))
+      .cover(size, size)
+      .writeAsync(fileName);
+
+    updateButtonConfig({
+      style: {
+        background: { image: fileName },
+      },
+    });
   };
 
   return (
@@ -101,6 +98,7 @@ PropertiesTray.propTypes = {
   buttonIndex: PropTypes.number,
   configs: PropTypes.shape().isRequired,
   onPropertyChange: PropTypes.func.isRequired,
+  device: PropTypes.shape().isRequired,
 };
 
 PropertiesTray.defaultProps = {

@@ -4,7 +4,10 @@ import { range } from "lodash";
 import DeckButton from "./DeckButton";
 import "../assets/scss/components/Deck.scss";
 
-const Deck = ({ rows, columns, onButtonSelected, selectedButton, configs }) => {
+const Deck = ({ device, onButtonSelected, selectedButton, configs }) => {
+  const rows = device.KEY_ROWS;
+  const columns = device.KEY_COLUMNS;
+
   const renderButton = (row, col) => {
     const index = row * columns + col;
     const buttonConfig = configs?.buttons?.find(b => b.index === index);
@@ -32,8 +35,7 @@ const Deck = ({ rows, columns, onButtonSelected, selectedButton, configs }) => {
 };
 
 Deck.propTypes = {
-  rows: PropTypes.number.isRequired,
-  columns: PropTypes.number.isRequired,
+  device: PropTypes.shape().isRequired,
   onButtonSelected: PropTypes.func.isRequired,
   selectedButton: PropTypes.number,
   configs: PropTypes.shape().isRequired,

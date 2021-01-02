@@ -2,7 +2,7 @@
 logs
 *.log
 
-*.config.json
+data
 
 # Runtime data
 pids
