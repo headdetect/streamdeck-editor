@@ -1,9 +1,8 @@
 import React from "react";
 import * as PropType from "prop-types";
 import classnames from "classnames";
+import { transparentImage } from "../utils/image";
 import "../assets/scss/components/DeckButton.scss";
-
-const transparentImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
 const DeckButton = ({ index, buttonConfig, onSelected, selected }) => {
   const handleClicked = () => {

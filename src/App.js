@@ -1,9 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import { listStreamDecks, openStreamDeck } from "elgato-stream-deck";
 import { first, isNil } from "lodash";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSun } from "@fortawesome/free-solid-svg-icons";
-import Jimp from "jimp";
 import fs from "fs";
 
 import Deck from "./components/Deck";
@@ -11,63 +10,71 @@ import PropertiesTray from "./components/PropertiesTray";
 import useConfig from "./hooks/useConfig";
 import hexToRgb from "./utils/hexToRgb";
 
-async function updateStreamDeck(device, config) {
+async function loadDeviceConfig(device, config) {
+  const timeoutRef = useRef(0);
+
+  const imageRef = useRef({});
+  const gifRef = useRef({});
+  const colorRef = useRef({});
+
   const buttons = config?.buttons || [];
   const brightness = config?.brightness || 70;
 
   device.setBrightness(brightness);
 
+  if (timeoutRef.current === 0) {
+    clearInterval(timeoutRef.current);
+
+    timeoutRef.current = 0;
+  }
+
   for (const button of buttons) {
     const { index, style } = button || {};
 
     if (isNil(index)) {
-      // TODO: Show notification
-      console.log("Malformed button config");
+      console.log("Config is invalid");
       continue;
     }
 
     if (style?.background?.image) {
-      // Image go here //
-
-      const image = await Jimp.read(style.background.image);
-
-      const compositeImage = await new Promise((res, rej) => {
-        new Jimp(device.ICON_SIZE, device.ICON_SIZE, style.background.color || "#000000", (err, jimpImage) => {
-          if (err) {
-            rej(err);
-            return;
-          }
-
-          res(jimpImage);
-        });
-      });
-
-      compositeImage
-        .quality(100)
-        .composite(image, 0, 0);
-
-      const rawBuffer = Buffer.alloc(device.ICON_SIZE * device.ICON_SIZE * 3);
-      const compositeBuffer = compositeImage.bitmap.data;
-
-      // Because Jimp will always have the alpha channel included,
-      // we need to strip it and I for the life of me cannot find
-      // a proper way to strip it out, so we're going to create a new
-      // buffer and copy it over sans-alpha channel.
-      let r = 0;
-      for (let i = 0; i < compositeBuffer.length; i++) {
-        if (i % 4 === 3) {
-          continue;
-        }
-
-        rawBuffer[r++] = compositeBuffer[i];
+      // Open up the raw file version of the saved image //
+      if (style.background.image.endsWith(".gif")) {
+        const raw = fs.readFileSync(`./data/${style.background.image}`);
+        const frames = gif
+        gifRef.current = { ...gifRef.current, [index]: { frames, index: 0 } };
+      } else {
+        const raw = fs.readFileSync(`./data/${style.background.image}.raw`);
+        imageRef.current = { ...imageRef.current, [index]: raw };
       }
-
-      device.fillImage(index, rawBuffer);
     } else if (style?.background?.color) {
       const color = hexToRgb(style.background.color);
-      device.fillColor(index, color.r, color.g, color.b);
+      colorRef.current = { ...colorRef.current, [index]: color };
     }
   }
+
+  timeoutRef.current = setInterval(() => {
+    const { current: images } = imageRef;
+    const { current: colors } = colorRef;
+    const { current: gifs } = gifRef;
+
+    for (let i = 0; i < buttons.length; i++) {
+      const { index } = buttons[i];
+
+      if (images.hasOwnProperty(index)) {
+        device.fillImage(index, images[index], { format: "rgba" });
+      } else if (colors.hasOwnProperty(index)) {
+        const { r, g, b } = colors[index];
+        device.fillImage(index, r, g, b);
+      } else if (gifs.hasOwnProperty(index)) {
+        const { raw, index: frameIndex } = gifs[index];
+
+
+        device.fillImage();
+
+        gifRef.current[index].index++;
+      }
+    }
+  }, 5);
 }
 
 export default function App() {
@@ -93,7 +100,7 @@ export default function App() {
   const [config, setConfig] = useConfig(selectedDeckInfo.serialNumber);
   const device = useMemo(() => openStreamDeck(selectedDeckInfo.path), [selectedDeckInfo.path]);
 
-  updateStreamDeck(device, config).catch(e => {
+  loadDeviceConfig(device, config).catch(e => {
     // TODO: Show error if can't update
 
     console.log(e);

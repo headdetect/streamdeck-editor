@@ -1,8 +1,9 @@
 import React, { useRef } from "react";
 import * as PropTypes from "prop-types";
-import jimp from "jimp";
 import { merge } from "lodash";
 import path from "path";
+import fs from "fs";
+import { resizeImage, saveRaw } from "../utils/image";
 
 import "../assets/scss/components/PropertiesTray.scss";
 import DeckButton from "./DeckButton";
@@ -11,9 +12,6 @@ const { dialog } = require("electron").remote;
 
 const PropertiesTray = ({ device, buttonIndex, configs, onPropertyChange }) => {
   const buttonConfig = configs.buttons?.find(butt => butt?.index === buttonIndex) || {};
-
-  const uploadFormRef = useRef();
-
   const { style, command, payload } = buttonConfig;
 
   const updateButtonConfig = newConfigs => {
@@ -57,17 +55,20 @@ const PropertiesTray = ({ device, buttonIndex, configs, onPropertyChange }) => {
   const openFileUploadDialog = async () => {
     const result = await dialog.showOpenDialog({
       properties: ["openFile"],
-      filters: [{ name: "Images", extensions: ["jpg", "png", "gif", "svg"] }],
+      filters: [{ name: "Images", extensions: ["jpg", "png", "gif"] }],
     });
 
     const [imagePath] = result.filePaths;
     const size = device.ICON_SIZE;
 
-    const fileName = `./data/${path.basename(imagePath)}`;
+    const fileName = `${path.basename(imagePath)}`;
 
-    await (await jimp.read(imagePath))
-      .cover(size, size)
-      .writeAsync(fileName);
+    // Save with proper format //
+    await saveRaw(imagePath,
+      fileName.endsWith(".gif")
+        ? `./data/${fileName}`
+        : `./data/${fileName}.raw`,
+      buttonConfig?.style?.background?.color, size);
 
     updateButtonConfig({
       style: {

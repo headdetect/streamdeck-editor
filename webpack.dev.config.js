@@ -45,10 +45,11 @@ module.exports = {
   ],
   externals: {
     "node-hid": "commonjs node-hid",
+    "gifsicle": "commonjs gifsicle",
   },
   devtool: "cheap-source-map",
   devServer: {
-    contentBase: path.resolve(__dirname, "dist"),
+    contentBase: path.resolve(__dirname, "data"),
     stats: {
       colors: true,
       chunks: false,
