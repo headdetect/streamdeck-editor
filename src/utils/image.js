@@ -8,12 +8,6 @@ const gifsicle = require("gifsicle");
 export const gifRegex = /^GIF8[79]a/;
 
 export const transparentImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-// 480x270
-
-// w/2 - h/2 = 105 (x1)
-
-// 240 - 135 = 105
-// 240 + 135 = 375
 
 export const saveRaw = async (input, output, background, size) => {
   const inputBuffer = fs.readFileSync(input);
@@ -39,7 +33,7 @@ export const saveRaw = async (input, output, background, size) => {
         crop = `0,0-${width},${height}`;
       }
 
-      execFile(gifsicle, ["-o", output, "--crop", crop, "--resize", `${size}x${size}`, input], error => {
+      execFile(gifsicle, ["-o", output, "--disposal", "previous", "-U", "--crop", crop, "--resize", `${size}x${size}`, input], error => {
         throw error;
       });
     } else {

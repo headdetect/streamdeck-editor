@@ -60,6 +60,7 @@
     "node-gyp": "^7.1.2",
     "node-hid": "^2.1.1",
     "node-sass": "^5.0.0",
+    "omggif": "^1.0.10",
     "prop-types": "^15.7.2",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",

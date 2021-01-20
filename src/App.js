@@ -1,32 +1,39 @@
-import React, { useMemo, useState, useRef } from "react";
+import React, { useMemo, useState } from "react";
 import { listStreamDecks, openStreamDeck } from "elgato-stream-deck";
 import { first, isNil } from "lodash";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSun } from "@fortawesome/free-solid-svg-icons";
 import fs from "fs";
+import omggif from "omggif";
 
 import Deck from "./components/Deck";
 import PropertiesTray from "./components/PropertiesTray";
 import useConfig from "./hooks/useConfig";
 import hexToRgb from "./utils/hexToRgb";
 
+const gifIndexes = {};
+
+const drawGif = ({ device, index, gifReader, framesElapsed }) => {
+  const frameNum = framesElapsed % gifReader.numFrames();
+  const info = gifReader.frameInfo(frameNum);
+
+  const pixels = [];
+  gifReader.decodeAndBlitFrameBGRA(frameNum, pixels);
+
+  const pixelBuffer = Buffer.alloc(96 * 96 * 4, 0);
+
+  pixelBuffer.fill(new Uint8Array(pixels));
+
+  device.fillImage(index, pixelBuffer, { format: "bgra" });
+
+  gifIndexes[index] = setTimeout(drawGif, info.delay * 5, { device, index, gifReader, framesElapsed: framesElapsed + 1 });
+};
+
 async function loadDeviceConfig(device, config) {
-  const timeoutRef = useRef(0);
-
-  const imageRef = useRef({});
-  const gifRef = useRef({});
-  const colorRef = useRef({});
-
   const buttons = config?.buttons || [];
   const brightness = config?.brightness || 70;
 
   device.setBrightness(brightness);
-
-  if (timeoutRef.current === 0) {
-    clearInterval(timeoutRef.current);
-
-    timeoutRef.current = 0;
-  }
 
   for (const button of buttons) {
     const { index, style } = button || {};
@@ -40,41 +47,32 @@ async function loadDeviceConfig(device, config) {
       // Open up the raw file version of the saved image //
       if (style.background.image.endsWith(".gif")) {
         const raw = fs.readFileSync(`./data/${style.background.image}`);
-        const frames = gif
-        gifRef.current = { ...gifRef.current, [index]: { frames, index: 0 } };
+        const gifReader = new omggif.GifReader(raw);
+
+        // Clear previous ones //
+        if (gifIndexes.hasOwnProperty(index) && gifIndexes[index] !== 0) {
+          clearTimeout(gifIndexes[index]);
+        }
+
+        const gifMeta = {
+          device,
+          index,
+          gifReader,
+          framesElapsed: 0,
+        };
+
+        gifIndexes[index] = 0;
+        setTimeout(drawGif, 1, gifMeta); // Wait until the previous was cleared //
       } else {
         const raw = fs.readFileSync(`./data/${style.background.image}.raw`);
-        imageRef.current = { ...imageRef.current, [index]: raw };
+
+        device.fillImage(index, raw, { format: "rgba" });
       }
     } else if (style?.background?.color) {
-      const color = hexToRgb(style.background.color);
-      colorRef.current = { ...colorRef.current, [index]: color };
+      const { r, g, b } = hexToRgb(style.background.color);
+      device.fillImage(index, r, g, b);
     }
   }
-
-  timeoutRef.current = setInterval(() => {
-    const { current: images } = imageRef;
-    const { current: colors } = colorRef;
-    const { current: gifs } = gifRef;
-
-    for (let i = 0; i < buttons.length; i++) {
-      const { index } = buttons[i];
-
-      if (images.hasOwnProperty(index)) {
-        device.fillImage(index, images[index], { format: "rgba" });
-      } else if (colors.hasOwnProperty(index)) {
-        const { r, g, b } = colors[index];
-        device.fillImage(index, r, g, b);
-      } else if (gifs.hasOwnProperty(index)) {
-        const { raw, index: frameIndex } = gifs[index];
-
-
-        device.fillImage();
-
-        gifRef.current[index].index++;
-      }
-    }
-  }, 5);
 }
 
 export default function App() {
