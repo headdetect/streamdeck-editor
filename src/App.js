@@ -1,79 +1,20 @@
 import React, { useMemo, useState } from "react";
 import { listStreamDecks, openStreamDeck } from "elgato-stream-deck";
-import { first, isNil } from "lodash";
+import { first } from "lodash";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSun } from "@fortawesome/free-solid-svg-icons";
 import fs from "fs";
-import omggif from "omggif";
 
+import loadDeviceConfig from "./utils/device";
 import Deck from "./components/Deck";
 import PropertiesTray from "./components/PropertiesTray";
-import useConfig from "./hooks/useConfig";
-import hexToRgb from "./utils/hexToRgb";
 
-const gifIndexes = {};
-
-const drawGif = ({ device, index, gifReader, framesElapsed }) => {
-  const frameNum = framesElapsed % gifReader.numFrames();
-  const info = gifReader.frameInfo(frameNum);
-
-  const pixels = [];
-  gifReader.decodeAndBlitFrameBGRA(frameNum, pixels);
-
-  const pixelBuffer = Buffer.alloc(96 * 96 * 4, 0);
-
-  pixelBuffer.fill(new Uint8Array(pixels));
-
-  device.fillImage(index, pixelBuffer, { format: "bgra" });
-
-  gifIndexes[index] = setTimeout(drawGif, info.delay * 5, { device, index, gifReader, framesElapsed: framesElapsed + 1 });
-};
-
-async function loadDeviceConfig(device, config) {
-  const buttons = config?.buttons || [];
-  const brightness = config?.brightness || 70;
-
-  device.setBrightness(brightness);
-
-  for (const button of buttons) {
-    const { index, style } = button || {};
-
-    if (isNil(index)) {
-      console.log("Config is invalid");
-      continue;
-    }
-
-    if (style?.background?.image) {
-      // Open up the raw file version of the saved image //
-      if (style.background.image.endsWith(".gif")) {
-        const raw = fs.readFileSync(`./data/${style.background.image}`);
-        const gifReader = new omggif.GifReader(raw);
-
-        // Clear previous ones //
-        if (gifIndexes.hasOwnProperty(index) && gifIndexes[index] !== 0) {
-          clearTimeout(gifIndexes[index]);
-        }
-
-        const gifMeta = {
-          device,
-          index,
-          gifReader,
-          framesElapsed: 0,
-        };
-
-        gifIndexes[index] = 0;
-        setTimeout(drawGif, 1, gifMeta); // Wait until the previous was cleared //
-      } else {
-        const raw = fs.readFileSync(`./data/${style.background.image}.raw`);
-
-        device.fillImage(index, raw, { format: "rgba" });
-      }
-    } else if (style?.background?.color) {
-      const { r, g, b } = hexToRgb(style.background.color);
-      device.fillImage(index, r, g, b);
-    }
-  }
-}
+import {
+  writeToConfig,
+  setOnUpdateListener,
+  clearAllListeners,
+  getConfig,
+} from "./utils/config";
 
 export default function App() {
   if (!fs.existsSync("./data")) {
@@ -87,6 +28,10 @@ export default function App() {
   const [selectedDeckInfo, setSelectedDeckInfo] = useState(primary);
   const [selectedButton, setSelectedButton] = useState(null);
 
+  const selectedDeckSerialNumber = selectedDeckInfo.serialNumber;
+
+  const [config, setConfigState] = useState(getConfig(selectedDeckSerialNumber));
+
   if (!selectedDeckInfo) {
     return (
       <div className="m-5">
@@ -95,14 +40,28 @@ export default function App() {
     );
   }
 
-  const [config, setConfig] = useConfig(selectedDeckInfo.serialNumber);
   const device = useMemo(() => openStreamDeck(selectedDeckInfo.path), [selectedDeckInfo.path]);
 
-  loadDeviceConfig(device, config).catch(e => {
-    // TODO: Show error if can't update
+  clearAllListeners();
+  setOnUpdateListener(selectedDeckSerialNumber, newConfig => {
+    console.log("New config. Reloading device", newConfig);
+    setConfigState(newConfig);
 
-    console.log(e);
+    loadDeviceConfig(device, newConfig).catch(e => {
+      // TODO: Show error if can't update
+
+      console.log(e);
+    });
   });
+
+  useMemo(() => {
+    console.log("Should only be called once");
+    loadDeviceConfig(device, config).catch(e => {
+      // TODO: Show error if can't update
+
+      console.log(e);
+    });
+  }, []);
 
   const buttonSelected = buttonIndex => {
     setSelectedButton(buttonIndex);
@@ -111,15 +70,13 @@ export default function App() {
   const updateBrightness = event => {
     const value = event?.target?.value || 70;
 
-    setConfig({
+    writeToConfig(selectedDeckSerialNumber, {
       brightness: value,
     });
   };
 
   const propertyChanged = updatedConfig => {
-    console.log("App.js", updatedConfig);
-
-    setConfig(updatedConfig);
+    writeToConfig(selectedDeckSerialNumber, updatedConfig);
   };
 
   return (

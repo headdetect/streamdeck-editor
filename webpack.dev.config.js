@@ -4,14 +4,21 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { spawn } = require("child_process");
 
 // Any directories you will be adding code/files into, need to be added to this array so webpack will pick them up
-const defaultInclude = path.resolve(__dirname, "./src");
+const defaultInclude = [path.resolve(__dirname, "./src"), path.resolve(__dirname, "./node_modules")];
 
 module.exports = {
   module: {
     rules: [
       {
         test: /\.s[ca]ss$/,
-        use: [{ loader: "style-loader" }, { loader: "css-loader" }, { loader: "sass-loader" }],
+        use: [
+          { loader: "style-loader" },
+          { loader: "css-loader" },
+          {
+            loader: "sass-loader",
+            options: { sourceMap: true },
+          },
+        ],
         include: defaultInclude,
       },
       {
@@ -21,7 +28,7 @@ module.exports = {
       },
       {
         test: /\.jsx?$/,
-        use: [{ loader: "babel-loader" }],
+        use: [{ loader: "babel-loader", options: { sourceMap: true } }],
         include: defaultInclude,
       },
       {

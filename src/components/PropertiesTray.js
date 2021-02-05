@@ -1,9 +1,12 @@
-import React, { useRef } from "react";
+import React from "react";
 import * as PropTypes from "prop-types";
 import { merge } from "lodash";
 import path from "path";
-import fs from "fs";
-import { resizeImage, saveRaw } from "../utils/image";
+
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faRecycle } from "@fortawesome/free-solid-svg-icons";
+import { commands } from "../commands/commands";
+import { saveRaw } from "../utils/image";
 
 import "../assets/scss/components/PropertiesTray.scss";
 import DeckButton from "./DeckButton";
@@ -12,7 +15,7 @@ const { dialog } = require("electron").remote;
 
 const PropertiesTray = ({ device, buttonIndex, configs, onPropertyChange }) => {
   const buttonConfig = configs.buttons?.find(butt => butt?.index === buttonIndex) || {};
-  const { style, command, payload } = buttonConfig;
+  const { style, command: commandName, payload } = buttonConfig;
 
   const updateButtonConfig = newConfigs => {
     const buttonConfigs = Object.assign([], configs.buttons || []); // Copy //
@@ -42,6 +45,25 @@ const PropertiesTray = ({ device, buttonIndex, configs, onPropertyChange }) => {
     }
   };
 
+  const reset = () => {
+    const buttonConfigs = Object.assign([], configs.buttons || []); // Copy //
+    const configIndex = configs.buttons.findIndex(butt => butt?.index === buttonIndex); // Find the index of this to remove //
+
+    if (configIndex === -1) {
+      return; // It was never saved in the first place //
+    }
+
+    // Remove our old button config from the list //
+    buttonConfigs.splice(configIndex, 1);
+
+    // Send update without the current config //
+    onPropertyChange({
+      buttons: [
+        ...buttonConfigs,
+      ],
+    });
+  };
+
   const updateBackgroundColor = event => {
     const color = event?.target?.value;
 
@@ -49,6 +71,20 @@ const PropertiesTray = ({ device, buttonIndex, configs, onPropertyChange }) => {
       style: {
         background: { color },
       },
+    });
+  };
+
+  const updateCommand = event => {
+    const command = event?.target?.value;
+
+    updateButtonConfig({
+      command,
+    });
+  };
+
+  const updatePayload = updatedPayload => {
+    updateButtonConfig({
+      payload: updatedPayload,
     });
   };
 
@@ -77,8 +113,15 @@ const PropertiesTray = ({ device, buttonIndex, configs, onPropertyChange }) => {
     });
   };
 
+  const commandies = commandName;
+
   return (
     <div className="propertiesTray">
+      <div className="pt-3 px-3">
+        <button type="button" className="btn btn-danger" onClick={reset}>
+          <FontAwesomeIcon icon={faRecycle} fixedWidth /> Reset
+        </button>
+      </div>
       <div className="pt-3 px-3">
         <label htmlFor="backgroundColor" className="form-label">Background</label>
 
@@ -87,9 +130,28 @@ const PropertiesTray = ({ device, buttonIndex, configs, onPropertyChange }) => {
             <DeckButton index={0} buttonConfig={buttonConfig} onSelected={openFileUploadDialog} selected={false} />
           </div>
           <div className="col">
-            <input type="color" className="form-control form-control-lg form-control-color" id="backgroundColor" value={style?.background?.color} title="Choose your color" onChange={updateBackgroundColor} />
+            <input type="color" className="form-control form-control-lg form-control-color" id="backgroundColor" value={style?.background?.color || "#000000"} title="Choose your color" onChange={updateBackgroundColor} />
           </div>
         </div>
+      </div>
+      <div className="pt-3 px-3">
+        <label htmlFor="function" className="form-label">Function</label>
+
+        <select className="form-control" onChange={updateCommand}>
+          {
+            Object.keys(commands)
+              .map(cmd => <option key={cmd}>{cmd}</option>)
+          }
+        </select>
+      </div>
+      <div className="pt-3 px-3">
+        {
+          commandName
+          && commands.hasOwnProperty(commandName)
+          && commands[commandName].hasOwnProperty("getOptions")
+            ? commands[commandName].getOptions()
+            : <></>
+        }
       </div>
     </div>
   );
