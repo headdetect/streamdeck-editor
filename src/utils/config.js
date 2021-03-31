@@ -16,7 +16,7 @@ let listeners = [];
  * Hook to get the current active configurations.
  * @param deckSerialNumber
  */
-const getConfig = (deckSerialNumber) => {
+const getConfigFromFile = (deckSerialNumber) => {
   if (!deckSerialNumber) {
     // eslint-disable-next-line no-throw-literal
     throw "Deck serial number must be set";
@@ -45,12 +45,11 @@ const setOnUpdateListener = (deckSerialNumber, callback) => listeners.push({ dec
 
 const flashUpdate = () => {
   const configCache = { };
-
   for (const listener of listeners) {
     const { deckSerialNumber, callback } = listener;
 
     if (!configCache.hasOwnProperty(deckSerialNumber)) {
-      configCache[deckSerialNumber] = getConfig(deckSerialNumber);
+      configCache[deckSerialNumber] = getConfigFromFile(deckSerialNumber);
     }
 
     callback(configCache[deckSerialNumber]);
@@ -60,7 +59,7 @@ const flashUpdate = () => {
 // Update the state and persist on disk //
 const writeToConfigPure = (deckSerialNumber, updatedConfigs, overwrite = false) => {
   const fileName = getFileFromSerial(deckSerialNumber);
-  const rawConfig = getConfig(deckSerialNumber);
+  const rawConfig = getConfigFromFile(deckSerialNumber);
 
   if (overwrite) {
     fs.writeFile(fileName, JSON.stringify(updatedConfigs, null, 4), flashUpdate);
@@ -72,13 +71,13 @@ const writeToConfigPure = (deckSerialNumber, updatedConfigs, overwrite = false) 
   fs.writeFile(fileName, JSON.stringify(newConfig, null, 4), flashUpdate);
 };
 
-const writeToConfig = debounce(writeToConfigPure, 100);
+const writeToConfig = debounce(writeToConfigPure, 400);
 
 export {
   writeToConfig,
   setOnUpdateListener,
   clearListener,
-  getConfig,
+  getConfigFromFile,
   defaultConfig,
   clearAllListeners,
 };

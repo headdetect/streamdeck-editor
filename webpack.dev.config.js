@@ -53,6 +53,7 @@ module.exports = {
   externals: {
     "node-hid": "commonjs node-hid",
     "gifsicle": "commonjs gifsicle",
+    "canvas": "commonjs canvas",
   },
   devtool: "cheap-source-map",
   devServer: {

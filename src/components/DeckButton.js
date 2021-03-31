@@ -1,33 +1,44 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as PropType from "prop-types";
 import classnames from "classnames";
-import { transparentImage } from "../utils/image";
 import "../assets/scss/components/DeckButton.scss";
+import drawConfig from "../utils/drawing";
 
-const DeckButton = ({ index, buttonConfig, onSelected, selected }) => {
-  const handleClicked = () => {
-    if (onSelected) {
-      onSelected(index);
+const DeckButton = ({ size, buttonConfig, onSelected, selected }) => {
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const [containerSize, setContainerSize] = useState(0);
+
+  useEffect(() => {
+    if (!canvasRef.current || !buttonConfig) {
+      return;
     }
-  };
 
-  const style = {};
+    canvasRef.current.width = size * 2;
+    canvasRef.current.height = size * 2;
 
-  if (buttonConfig?.style?.background?.color) {
-    style.backgroundColor = buttonConfig.style.background.color;
-  }
+    const context = canvasRef.current.getContext("2d");
 
-  const src = buttonConfig?.style?.background?.image || transparentImage;
+    // Just for the purpose of rendering on screen, we're going to say its 2x the actual size //
+    context.translate(-size, -size);
+    context.scale(2, 2);
+
+    drawConfig(context, buttonConfig);
+  }, [canvasRef, buttonConfig]);
+
+  useEffect(() => {
+    setContainerSize(containerRef.current?.clientWidth);
+  });
 
   return (
-    <div className="deckButton">
-      <img src={src} className={classnames("deckButtonContent", { selected })} onClick={handleClicked} style={style} alt="alt" />
+    <div className="deckButton" ref={containerRef} style={{ height: containerSize }} onClick={() => onSelected && onSelected()}>
+      <canvas ref={canvasRef} className={classnames("deckButtonContent", { selected })} />
     </div>
   );
 };
 
 DeckButton.propTypes = {
-  index: PropType.number.isRequired,
+  size: PropType.number.isRequired,
   buttonConfig: PropType.shape(),
   onSelected: PropType.func,
   selected: PropType.bool,

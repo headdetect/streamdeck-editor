@@ -1,5 +1,9 @@
 import React from "react";
 import { render } from "react-dom";
+
+import { Provider } from "react-redux";
+import store from "./store/store";
+
 import App from "./App";
 import "./assets/scss/App.scss";
 
@@ -8,4 +12,9 @@ appRoot.id = "root";
 
 document.getElementsByTagName("body")[0].appendChild(appRoot);
 
-render(<App />, appRoot);
+render(
+  <Provider store={store}>
+    <App />
+  </Provider>,
+  appRoot,
+);

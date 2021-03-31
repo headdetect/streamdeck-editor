@@ -1,20 +1,25 @@
 import React from "react";
 import * as PropTypes from "prop-types";
 import { range } from "lodash";
+import { useSelector } from "react-redux";
 import DeckButton from "./DeckButton";
 import "../assets/scss/components/Deck.scss";
 
-const Deck = ({ device, onButtonSelected, selectedButton, configs }) => {
-  const rows = device.KEY_ROWS;
-  const columns = device.KEY_COLUMNS;
+const Deck = ({ onButtonSelected }) => {
+  const deviceProperties = useSelector(state => state.device.deviceProperties);
+  const config = useSelector(state => state.deck.config);
+  const selectedButton = useSelector(state => state.deck.activeButtonIndex);
+
+  const rows = deviceProperties.ROWS;
+  const columns = deviceProperties.COLUMNS;
 
   const renderButton = (row, col) => {
     const index = row * columns + col;
-    const buttonConfig = configs?.buttons?.find(b => b.index === index);
+    const buttonConfig = config.buttons?.find(b => b.index === index);
 
     return (
       <div className="col deckColumn" key={index}>
-        <DeckButton index={index} onSelected={onButtonSelected} selected={index === selectedButton} buttonConfig={buttonConfig} />
+        <DeckButton size={deviceProperties.ICON_SIZE} onSelected={() => onButtonSelected(index)} selected={index === selectedButton} buttonConfig={buttonConfig} />
       </div>
     );
   };
@@ -35,14 +40,7 @@ const Deck = ({ device, onButtonSelected, selectedButton, configs }) => {
 };
 
 Deck.propTypes = {
-  device: PropTypes.shape().isRequired,
   onButtonSelected: PropTypes.func.isRequired,
-  selectedButton: PropTypes.number,
-  configs: PropTypes.shape().isRequired,
-};
-
-Deck.defaultProps = {
-  selectedButton: null,
 };
 
 export default Deck;

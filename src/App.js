@@ -1,36 +1,77 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { listStreamDecks, openStreamDeck } from "elgato-stream-deck";
 import { first } from "lodash";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSun } from "@fortawesome/free-solid-svg-icons";
 import fs from "fs";
 
-import loadDeviceConfig from "./utils/device";
+import { useSelector } from "react-redux";
+import setupStreamDeck from "./utils/device";
 import Deck from "./components/Deck";
 import PropertiesTray from "./components/PropertiesTray";
+import store from "./store/store";
 
 import {
   writeToConfig,
   setOnUpdateListener,
   clearAllListeners,
-  getConfig,
+  getConfigFromFile,
 } from "./utils/config";
+
+import { setActiveButtonIndex, setConfig, setActiveDeviceInfo, setActiveDeviceProperties } from "./store/actions";
 
 export default function App() {
   if (!fs.existsSync("./data")) {
     fs.mkdirSync("./data");
   }
 
-  const decks = listStreamDecks();
+  const deckDeviceInfos = listStreamDecks();
 
-  const primary = first(decks);
+  const canvasRef = useRef(null);
 
-  const [selectedDeckInfo, setSelectedDeckInfo] = useState(primary);
-  const [selectedButton, setSelectedButton] = useState(null);
+  const selectedDeckInfo = useSelector(state => state.device.deviceInfo);
+  const selectedDeckProperties = useSelector(state => state.device.deviceProperties);
+  const config = useSelector(state => state.deck.config);
+  const selectedButton = useSelector(state => state.deck.activeButtonIndex);
 
-  const selectedDeckSerialNumber = selectedDeckInfo.serialNumber;
+  const selectedDeckSerialNumber = selectedDeckInfo?.serialNumber;
 
-  const [config, setConfigState] = useState(getConfig(selectedDeckSerialNumber));
+  // Set store data on load //
+  useEffect(() => {
+    const primary = first(deckDeviceInfos);
+
+    if (!primary) return;
+
+    store.dispatch(setActiveDeviceInfo(primary));
+    store.dispatch(setConfig(getConfigFromFile(primary.serialNumber)));
+  }, []);
+
+  const selectedDeck = useMemo(() => {
+    if (selectedDeckInfo?.path) {
+      return openStreamDeck(selectedDeckInfo.path);
+    }
+
+    return null;
+  }, [selectedDeckInfo?.path]);
+
+  const flashConfigToDevice = (newConfig) => {
+    if (!canvasRef.current) return;
+
+    setupStreamDeck(selectedDeck, newConfig, canvasRef.current).catch(e => {
+      // TODO: Show error if can't update
+
+      console.log(e);
+    });
+  };
+
+  useEffect(() => {
+    if (!config || !selectedDeck) {
+      return;
+    }
+
+    flashConfigToDevice(config);
+    store.dispatch(setActiveDeviceProperties(selectedDeck.deviceProperties));
+  }, [selectedDeck]); // We only want when a deck is changed, not when the config changes //
 
   if (!selectedDeckInfo) {
     return (
@@ -40,34 +81,23 @@ export default function App() {
     );
   }
 
-  const device = useMemo(() => openStreamDeck(selectedDeckInfo.path), [selectedDeckInfo.path]);
-
+  // TODO: Refactor this mess to not use listeners but something like a useEffect
   clearAllListeners();
   setOnUpdateListener(selectedDeckSerialNumber, newConfig => {
     console.log("New config. Reloading device", newConfig);
-    setConfigState(newConfig);
-
-    loadDeviceConfig(device, newConfig).catch(e => {
-      // TODO: Show error if can't update
-
-      console.log(e);
-    });
+    store.dispatch(setConfig(newConfig));
+    flashConfigToDevice(newConfig);
   });
 
-  useMemo(() => {
-    console.log("Should only be called once");
-    loadDeviceConfig(device, config).catch(e => {
-      // TODO: Show error if can't update
-
-      console.log(e);
-    });
-  }, []);
-
-  const buttonSelected = buttonIndex => {
-    setSelectedButton(buttonIndex);
+  const handleButtonSelected = buttonIndex => {
+    store.dispatch(setActiveButtonIndex(buttonIndex));
   };
 
-  const updateBrightness = event => {
+  const handleDeckChanged = ele => {
+    store.dispatch(setActiveDeviceInfo(deckDeviceInfos.find(d => d.serialNumber === ele.target.value)));
+  };
+
+  const updateBrightness = (event) => {
     const value = event?.target?.value || 70;
 
     writeToConfig(selectedDeckSerialNumber, {
@@ -75,18 +105,30 @@ export default function App() {
     });
   };
 
-  const propertyChanged = updatedConfig => {
+  const propertyChanged = (updatedConfig) => {
     writeToConfig(selectedDeckSerialNumber, updatedConfig);
   };
 
+  if (!selectedDeckInfo || !selectedDeckProperties) {
+    return (
+      <div className="m-5">
+        <h1 className="text-white">Loading...</h1>
+      </div>
+    );
+  }
+
   return (
     <div className="row h-100 px-3">
+      <div className="d-none">
+        {/* For use when rendering actual button bitmaps */}
+        <canvas ref={canvasRef} />
+      </div>
       <div className="col-8">
         <div className="row my-3">
           <div className="col-4">
-            <select className="form-select mb-3" onChange={ele => setSelectedDeckInfo(decks.find(d => d.serialNumber === ele.target.value))}>
+            <select className="form-select mb-3" onChange={handleDeckChanged}>
               {
-                decks.map(deck => <option key={deck.serialNumber} value={deck.serialNumber}>{deck.model} {deck.serialNumber}</option>)
+                deckDeviceInfos.map(deck => <option key={deck.serialNumber} value={deck.serialNumber}>{deck.model} {deck.serialNumber}</option>)
               }
             </select>
           </div>
@@ -105,13 +147,11 @@ export default function App() {
           </div>
         </div>
 
-        <Deck device={device} onButtonSelected={buttonSelected} selectedButton={selectedButton} configs={config} />
+        <Deck onButtonSelected={handleButtonSelected} />
       </div>
       <div className="col-4">
         {
-          selectedButton !== null
-            ? <PropertiesTray device={device} buttonIndex={selectedButton} configs={config} onPropertyChange={propertyChanged} />
-            : <></>
+          selectedButton !== null && <PropertiesTray onPropertyChange={propertyChanged} />
         }
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { isNil } from "lodash";
 import fs from "fs";
 import omggif from "omggif";
-import hexToRgb from "./hexToRgb";
+import drawConfig from "./drawing";
 
 const drawingIndexes = {};
 const resetIndexes = {};
@@ -29,45 +29,53 @@ const drawGif = ({ device, index, gifReader, framesElapsed }) => {
     pixelBuffer.fill(new Uint8Array(pixels));
   }
 
-  device.fillImage(index, pixelBuffer, { format: "bgra" });
+  device.fillImage(index, pixelBuffer, { format: "bgra" }); // TODO: Use canvas
 
   drawingIndexes[index] = setTimeout(drawGif, info.delay * 5, { device, index, gifReader, framesElapsed: framesElapsed + 1 });
 };
 
-const setButtonBackground = (device, { index, style }) => {
-  if (style?.background?.image) {
-    // Open up the raw file version of the saved image //
-    if (style.background.image.endsWith(".gif")) {
-      const raw = fs.readFileSync(`./data/${style.background.image}`);
-      const gifReader = new omggif.GifReader(raw);
+const initGifDrawSequence = (device, index, image) => {
+  const raw = fs.readFileSync(`./data/${image}`);
+  const gifReader = new omggif.GifReader(raw);
 
-      // Clear previous ones //
-      if (drawingIndexes.hasOwnProperty(index)) {
-        clearTimeout(drawingIndexes[index]);
-        delete drawingIndexes[index];
-      }
+  // Clear previous ones //
+  if (drawingIndexes.hasOwnProperty(index)) {
+    clearTimeout(drawingIndexes[index]);
+    delete drawingIndexes[index];
+  }
 
-      const gifMeta = {
-        device,
-        index,
-        gifReader,
-        framesElapsed: 0,
-      };
+  const gifMeta = {
+    device,
+    index,
+    gifReader,
+    framesElapsed: 0,
+  };
 
-      // eslint-disable-next-line no-return-assign
-      setTimeout(() => resetIndexes[index] = true, 10); // Reset any that may be running //
-      setTimeout((info) => {
-        delete resetIndexes[index];
-        drawGif(info);
-      }, 100, gifMeta); // Wait until the previous was cleared //
-    } else {
-      const raw = fs.readFileSync(`./data/${style.background.image}.raw`);
+  // eslint-disable-next-line no-return-assign
+  setTimeout(() => resetIndexes[index] = true, 10); // Reset any that may be running //
+  setTimeout((info) => {
+    delete resetIndexes[index];
+    drawGif(info);
+  }, 100, gifMeta); // Wait until the previous was cleared //
+};
 
-      device.fillImage(index, raw, { format: "rgba" });
-    }
-  } else if (style?.background?.color) {
-    const { r, g, b } = hexToRgb(style.background.color);
-    device.fillImage(index, r, g, b);
+const setButtonGraphics = async (device, canvasContext, button) => {
+  const { index, style } = button;
+
+  // TODO: Move to the drawing util
+  if (style?.background?.image?.endsWith(".gif")) {
+    initGifDrawSequence(device, index, style.background.image);
+    return;
+  }
+
+  if (style) {
+    const { width: canvasWidth, height: canvasHeight } = canvasContext.canvas;
+
+    drawConfig(canvasContext, button);
+
+    const pixels = canvasContext.getImageData(0, 0, canvasWidth, canvasHeight);
+    const buffer = Buffer.from(pixels.data.buffer); // Get NodeJs Buffer from ArrayBuffer //
+    device.fillImage(index, buffer, { format: "rgba" });
   } else {
     device.clearKey(index);
   }
@@ -77,7 +85,7 @@ const buttonDownHandler = (index) => {
   console.log("Button pressed", index);
 };
 
-const loadDeviceConfig = async (device, config) => {
+const setupStreamDeck = async (device, config, canvas) => {
   const buttons = config?.buttons || [];
   const brightness = config?.brightness || 70;
 
@@ -92,6 +100,13 @@ const loadDeviceConfig = async (device, config) => {
   // Clear gif timeouts //
   Object.keys(drawingIndexes).forEach(index => clearInterval(drawingIndexes[index]));
 
+  const { ICON_SIZE } = device;
+
+  // Create a canvas that all our buttons can use to draw things //
+  const canvasContext = canvas.getContext("2d");
+  canvasContext.canvas.width = ICON_SIZE;
+  canvasContext.canvas.height = ICON_SIZE;
+
   for (const button of buttons) {
     const { index } = button || {};
 
@@ -100,8 +115,9 @@ const loadDeviceConfig = async (device, config) => {
       continue;
     }
 
-    setButtonBackground(device, button);
+    await setButtonGraphics(device, canvasContext, button);
+    canvasContext.clearRect(0, 0, ICON_SIZE, ICON_SIZE); // Clear so the next button doesn't get garbage //
   }
 };
 
-export default loadDeviceConfig;
+export default setupStreamDeck;
