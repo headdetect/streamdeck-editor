@@ -21,8 +21,9 @@ export default function drawConfig(canvasContext, buttonConfig) {
     if (style.text?.value) {
       const hsluv = hexToHsluv(backgroundColor); // Get luminance of the background //
       const fontSize = style.text.fontSize || 16;
+      const properties = style.text.properties || "";
       canvasContext.fillStyle = hsluv[2] > 70 ? "black" : "white"; // On a scale from 0 - 100.0 //
-      canvasContext.font = `${fontSize}px sans-serif`;
+      canvasContext.font = `${properties} ${fontSize}px sans-serif`;
       canvasContext.textAlign = "center";
 
       const textHeight = +fontSize + 4; // 4px for padding

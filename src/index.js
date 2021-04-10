@@ -1,5 +1,7 @@
 import React from "react";
 import { render } from "react-dom";
+import * as MenuBuilder from "./menu";
+import { mainWindow } from "electron";
 
 import { Provider } from "react-redux";
 import store from "./store/store";

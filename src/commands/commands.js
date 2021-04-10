@@ -5,4 +5,5 @@ export const commands = {
   "HTTP Request": require("./makeHttpRequest"),
   "Script": require("./script"),
   "Open Webpage": require("./openWebpage"),
+  "Send Keys": require("./sendKeys"),
 };

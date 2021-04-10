@@ -1,5 +1,6 @@
 import { merge } from "lodash";
 import { useEffect, useState } from "react";
+import clsx from "clsx";
 
 export default function useButtonConfig(wholeConfig, buttonIndex, onPropertyChange) {
   const initialConfig = wholeConfig.buttons?.find(butt => butt?.index === buttonIndex) || {};
@@ -83,14 +84,23 @@ export default function useButtonConfig(wholeConfig, buttonIndex, onPropertyChan
     });
   };
 
-  const updateFontProperties = event => {
-    debugger;
-    const properties = "";
+  const updateFontProperties = action => {
+    const text = style?.text?.properties || "";
+    const previous = {
+      bold: text.includes("bold"),
+      italic: text.includes("italic"),
+      underline: text.includes("underline"),
+    };
+
+    previous[action] = !previous[action];
+
+    const stringified = clsx(previous);
+
     updateButtonConfig({
       style: {
         ...style,
         text: {
-          properties,
+          properties: stringified,
         },
       },
     });
@@ -104,9 +114,9 @@ export default function useButtonConfig(wholeConfig, buttonIndex, onPropertyChan
     });
   };
 
-  const updatePayload = updatedPayload => {
+  const updatePayload = payload => {
     updateButtonConfig({
-      payload: updatedPayload,
+      payload,
     });
   };
 

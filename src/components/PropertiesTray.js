@@ -1,16 +1,19 @@
-import React, { useEffect } from "react";
+import React from "react";
 import * as PropTypes from "prop-types";
 import path from "path";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faRecycle, faItalic, faBold, faUnderline } from "@fortawesome/free-solid-svg-icons";
+import { faRecycle, faItalic, faBold } from "@fortawesome/free-solid-svg-icons";
 import { useSelector } from "react-redux";
+import clsx from "clsx";
 import useButtonConfig from "../hooks/useButtonConfig";
 import { commands } from "../commands/commands";
 import { saveRaw } from "../utils/image";
 
 import "../assets/scss/components/PropertiesTray.scss";
 import DeckButton from "./DeckButton";
+import store from "../store/store";
+import { setActiveButtonIndex } from "../store/actions";
 
 const { dialog } = require("electron").remote;
 
@@ -28,6 +31,7 @@ const PropertiesTray = ({ onPropertyChange }) => {
     updateFontSize,
     updateFontProperties,
     updateCommand,
+    updatePayload,
 
     reset,
   } = useButtonConfig(config, selectedButtonIndex, onPropertyChange);
@@ -55,21 +59,33 @@ const PropertiesTray = ({ onPropertyChange }) => {
     updateBackgroundImage(fileName);
   };
 
-  console.log("Style", style);
+  const closeTray = () => {
+    store.dispatch(setActiveButtonIndex(null));
+  }
+
+  const textProperties = style?.text?.properties;
 
   return (
     <div className="propertiesTray">
       <div className="pt-3 px-3">
-        <button type="button" className="btn btn-danger" onClick={reset}>
-          <FontAwesomeIcon icon={faRecycle} fixedWidth /> Reset
-        </button>
+        <div className="row">
+          <div className="col">
+            <button type="button" className="btn btn-danger" onClick={reset}>
+              <FontAwesomeIcon icon={faRecycle} fixedWidth /> Reset
+            </button>
+          </div>
+
+          <div className="col text-right">
+            <button type="button" className="btn-close btn-close-white float-end" aria-label="Close" onClick={closeTray} />
+          </div>
+        </div>
       </div>
       <div className="pt-3 px-3">
         <label htmlFor="backgroundColor" className="form-label">Background</label>
 
         <div className="row">
-          <div className="col-6">
-            <DeckButton size={deviceProperties.ICON_SIZE} buttonConfig={currentButtonConfig} onSelected={openFileUploadDialog} selected={false} debug />
+          <div className="col-4">
+            <DeckButton size={deviceProperties.ICON_SIZE} buttonConfig={currentButtonConfig} onSelected={openFileUploadDialog} selected={false} />
           </div>
           <div className="col">
             <input type="color" className="form-control form-control-lg form-control-color mb-2" id="backgroundColor" value={style?.background?.color || "#000000"} title="Choose your color" onChange={updateBackgroundColor} />
@@ -86,9 +102,20 @@ const PropertiesTray = ({ onPropertyChange }) => {
           </div>
           <div className="col-8">
             <div className="btn-group me-2" role="group" aria-label="Second group">
-              <button type="button" className="btn btn-secondary" onClick={() => updateFontProperties("italics")}><FontAwesomeIcon icon={faItalic} fixedWidth /></button>
-              <button type="button" className="btn btn-secondary" onClick={() => updateFontProperties("bold")}><FontAwesomeIcon icon={faBold} fixedWidth /></button>
-              <button type="button" className="btn btn-secondary" onClick={() => updateFontProperties("underline")}><FontAwesomeIcon icon={faUnderline} fixedWidth /></button>
+              <button
+                type="button"
+                className={clsx("btn btn-secondary", { "active": Boolean(textProperties?.includes("italic")) })}
+                onClick={() => updateFontProperties("italic")}
+              >
+                <FontAwesomeIcon icon={faItalic} fixedWidth />
+              </button>
+              <button
+                type="button"
+                className={clsx("btn btn-secondary", { "active": Boolean(textProperties?.includes("bold")) })}
+                onClick={() => updateFontProperties("bold")}
+              >
+                <FontAwesomeIcon icon={faBold} fixedWidth />
+              </button>
             </div>
           </div>
         </div>
@@ -101,10 +128,10 @@ const PropertiesTray = ({ onPropertyChange }) => {
       <div className="pt-3 px-3">
         <label htmlFor="function" className="form-label">Function</label>
 
-        <select className="form-control" onChange={updateCommand}>
+        <select className="form-control" onChange={updateCommand} value={commandName}>
           {
             Object.keys(commands)
-              .map(cmd => <option key={cmd}>{cmd}</option>)
+              .map(cmd => <option key={cmd} value={cmd}>{cmd}</option>)
           }
         </select>
       </div>
@@ -112,8 +139,8 @@ const PropertiesTray = ({ onPropertyChange }) => {
         {
           commandName
             && commands.hasOwnProperty(commandName)
-            && commands[commandName].hasOwnProperty("getOptions")
-            && commands[commandName].getOptions(payload)
+            && commands[commandName].hasOwnProperty("getOptionsComponent")
+            && commands[commandName].getOptionsComponent(payload, updatePayload)
         }
       </div>
     </div>

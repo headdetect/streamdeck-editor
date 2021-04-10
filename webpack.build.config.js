@@ -11,19 +11,19 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.css$/,
+        use: [
+          MiniCssExtractPlugin.loader,
+          "css-loader",
+        ],
+        include: defaultInclude,
+      },
+      {
         test: /\.s[ac]ss$/i,
         use: [
           "style-loader",
           "css-loader",
           "sass-loader",
-        ],
-        include: defaultInclude,
-      },
-      {
-        test: /\.css$/,
-        use: [
-          MiniCssExtractPlugin.loader,
-          "css-loader",
         ],
         include: defaultInclude,
       },
@@ -46,6 +46,8 @@ module.exports = {
   },
   externals: {
     "node-hid": "commonjs node-hid",
+    "gifsicle": "commonjs gifsicle",
+    "robotjs": "commonjs robotjs",
   },
   target: "electron-renderer",
   plugins: [

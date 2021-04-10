@@ -2,6 +2,7 @@ import { isNil } from "lodash";
 import fs from "fs";
 import omggif from "omggif";
 import drawConfig from "./drawing";
+import { commands } from "../commands/commands";
 
 const drawingIndexes = {};
 const resetIndexes = {};
@@ -81,11 +82,7 @@ const setButtonGraphics = async (device, canvasContext, button) => {
   }
 };
 
-const buttonDownHandler = (index) => {
-  console.log("Button pressed", index);
-};
-
-const setupStreamDeck = async (device, config, canvas) => {
+const setupStreamDeck = async (device, config, canvas, onButtonPressed) => {
   const buttons = config?.buttons || [];
   const brightness = config?.brightness || 70;
 
@@ -93,7 +90,7 @@ const setupStreamDeck = async (device, config, canvas) => {
   device.setBrightness(brightness);
 
   if (!buttonHandlerAttached) {
-    device.on("up", buttonDownHandler);
+    device.on("up", onButtonPressed);
     buttonHandlerAttached = true;
   }
 

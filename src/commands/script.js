@@ -1,6 +1,6 @@
 import React from "react";
 
-export function getOptions() {
+export function getOptionsComponent() {
   return (
     <>
       Input box here or something idk
@@ -8,6 +8,6 @@ export function getOptions() {
   );
 }
 
-export function runCommand(opts) {
+export async function runCommand(opts) {
   console.log("EXECUTING", opts);
 }

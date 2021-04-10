@@ -19,6 +19,7 @@ import {
 } from "./utils/config";
 
 import { setActiveButtonIndex, setConfig, setActiveDeviceInfo, setActiveDeviceProperties } from "./store/actions";
+import { commands } from "./commands/commands";
 
 export default function App() {
   if (!fs.existsSync("./data")) {
@@ -54,10 +55,36 @@ export default function App() {
     return null;
   }, [selectedDeckInfo?.path]);
 
+  const handleButtonPressed = useCallback(async (index) => {
+    // Get command //
+    const button = config.buttons?.find(butt => butt.index === index);
+
+    if (!button) {
+      // If we can't find button, just ignore //
+      return;
+    }
+
+    const { command: commandName, payload } = button;
+
+    if (!commandName || !payload) {
+      return;
+    }
+
+    const command = commands[commandName];
+
+    // Execute command w/payload //
+    if (!command) {
+      return;
+    }
+
+    console.log("Running command", commandName, payload);
+    await command.runCommand(payload);
+  }, [config]);
+
   const flashConfigToDevice = (newConfig) => {
     if (!canvasRef.current) return;
 
-    setupStreamDeck(selectedDeck, newConfig, canvasRef.current).catch(e => {
+    setupStreamDeck(selectedDeck, newConfig, canvasRef.current, handleButtonPressed).catch(e => {
       // TODO: Show error if can't update
 
       console.log(e);
@@ -69,9 +96,15 @@ export default function App() {
       return;
     }
 
-    flashConfigToDevice(config);
     store.dispatch(setActiveDeviceProperties(selectedDeck.deviceProperties));
   }, [selectedDeck]); // We only want when a deck is changed, not when the config changes //
+
+  const setCanvasRef = useCallback(ref => {
+    if (ref && config) {
+      canvasRef.current = ref;
+      flashConfigToDevice(config);
+    }
+  }, [config]);
 
   if (!selectedDeckInfo) {
     return (
@@ -118,40 +151,46 @@ export default function App() {
   }
 
   return (
-    <div className="row h-100 px-3">
-      <div className="d-none">
-        {/* For use when rendering actual button bitmaps */}
-        <canvas ref={canvasRef} />
-      </div>
-      <div className="col-8">
-        <div className="row my-3">
-          <div className="col-4">
-            <select className="form-select mb-3" onChange={handleDeckChanged}>
-              {
-                deckDeviceInfos.map(deck => <option key={deck.serialNumber} value={deck.serialNumber}>{deck.model} {deck.serialNumber}</option>)
-              }
-            </select>
-          </div>
-          <div className="col">
-            <div className="row brightness">
-              <div className="col-1">
-                <FontAwesomeIcon icon={faSun} transform="shrink-6" />
-              </div>
-              <div className="col">
-                <input type="range" className="form-range" onChange={updateBrightness} value={config?.brightness || 70} />
-              </div>
-              <div className="col-1">
-                <FontAwesomeIcon icon={faSun} />
+    <div className="container-fluid h-100">
+      <div className="row h-100">
+        <div className="d-none">
+          {/* For use when rendering actual button bitmaps */}
+          <canvas ref={setCanvasRef} />
+        </div>
+        <div className="col px-3 py-2">
+          <div className="row my-3">
+            <div className="col-4">
+              <select className="form-select mb-3" onChange={handleDeckChanged}>
+                {
+                  deckDeviceInfos.map(deck => <option key={deck.serialNumber} value={deck.serialNumber}>{deck.model} {deck.serialNumber}</option>)
+                }
+              </select>
+            </div>
+            <div className="col">
+              <div className="row brightness">
+                <div className="col-1">
+                  <FontAwesomeIcon icon={faSun} transform="shrink-6" />
+                </div>
+                <div className="col">
+                  <input type="range" className="form-range" onChange={updateBrightness} value={config?.brightness || 70} />
+                </div>
+                <div className="col-1">
+                  <FontAwesomeIcon icon={faSun} />
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <Deck onButtonSelected={handleButtonSelected} />
-      </div>
-      <div className="col-4">
+          <Deck onButtonSelected={handleButtonSelected} />
+        </div>
         {
-          selectedButton !== null && <PropertiesTray onPropertyChange={propertyChanged} />
+          selectedButton !== null && (
+            <div className="col-4 h-100 overflow-auto">
+              {
+                <PropertiesTray onPropertyChange={propertyChanged} />
+              }
+            </div>
+          )
         }
       </div>
     </div>

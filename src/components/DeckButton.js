@@ -1,13 +1,30 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as PropType from "prop-types";
-import classnames from "classnames";
+import clsx from "clsx";
 import "../assets/scss/components/DeckButton.scss";
 import drawConfig from "../utils/drawing";
+import { useSelector } from "react-redux";
 
 const DeckButton = ({ size, buttonConfig, onSelected, selected }) => {
   const canvasRef = useRef(null);
-  const containerRef = useRef(null);
-  const [containerSize, setContainerSize] = useState(0);
+  const selectedButtonIndex = useSelector(state => state.deck.activeButtonIndex);
+
+  const buttonContainerRef = useRef(null);
+  const [buttonContainerSize, setButtonContainerSize] = useState(0);
+
+  useEffect(() => {
+    const handleResize = () =>
+      setButtonContainerSize((buttonContainerRef.current?.offsetWidth || 0));
+
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    }
+  }, [buttonContainerRef.current, selectedButtonIndex]); // Listen for selectedButton changes, that's when the property tray opens/closes //
+
 
   useEffect(() => {
     if (!canvasRef.current || !buttonConfig) {
@@ -26,13 +43,9 @@ const DeckButton = ({ size, buttonConfig, onSelected, selected }) => {
     drawConfig(context, buttonConfig);
   }, [canvasRef, buttonConfig]);
 
-  useEffect(() => {
-    setContainerSize(containerRef.current?.clientWidth);
-  });
-
   return (
-    <div className="deckButton" ref={containerRef} style={{ height: containerSize }} onClick={() => onSelected && onSelected()}>
-      <canvas ref={canvasRef} className={classnames("deckButtonContent", { selected })} />
+    <div className="deckButton" onClick={() => onSelected && onSelected()} ref={buttonContainerRef} style={{ height: buttonContainerSize }}>
+      <canvas ref={canvasRef} className={clsx("deckButtonContent", { selected })} />
     </div>
   );
 };
