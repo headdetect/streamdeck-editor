@@ -27,7 +27,7 @@ const DeckButton = ({ size, buttonConfig, onSelected, selected }) => {
 
 
   useEffect(() => {
-    if (!canvasRef.current || !buttonConfig) {
+    if (!canvasRef.current) {
       return;
     }
 

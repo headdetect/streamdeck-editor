@@ -122,10 +122,6 @@ export default function App() {
     flashConfigToDevice(newConfig);
   });
 
-  const handleButtonSelected = buttonIndex => {
-    store.dispatch(setActiveButtonIndex(buttonIndex));
-  };
-
   const handleDeckChanged = ele => {
     store.dispatch(setActiveDeviceInfo(deckDeviceInfos.find(d => d.serialNumber === ele.target.value)));
   };
@@ -181,7 +177,7 @@ export default function App() {
             </div>
           </div>
 
-          <Deck onButtonSelected={handleButtonSelected} />
+          <Deck onPropertyChange={propertyChanged} />
         </div>
         {
           selectedButton !== null && (

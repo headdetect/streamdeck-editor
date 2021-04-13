@@ -2,7 +2,7 @@ import * as actionTypes from "../types";
 
 const initialState = {
   activeButtonIndex: null,
-  config: null, // array of buttons
+  config: null,
 };
 
 export default function (state = initialState, action) {

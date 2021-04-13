@@ -1,8 +1,16 @@
 import { hexToHsluv } from "hsluv";
 
 export default function drawConfig(canvasContext, buttonConfig) {
-  const { style } = buttonConfig;
   const { width: canvasWidth, height: canvasHeight } = canvasContext.canvas;
+
+  if (!buttonConfig) {
+    // Clear it and move on //
+    canvasContext.clearRect(0, 0, canvasWidth, canvasHeight);
+    return;
+  }
+
+  const { style } = buttonConfig;
+
 
   if (style) {
     // Draw color //
